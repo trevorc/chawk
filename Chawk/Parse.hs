@@ -89,12 +89,30 @@ commaSep1       = P.commaSep1 awkLanguage
 fromState :: (ParseState -> a) -> AwkParser a
 fromState = (<$> getState)
 
+statement :: AwkParser AST.Statement
+statement = undefined
+
+action :: AwkParser AST.Action
+action = braces $ sepEndBy statement statementSep where
+    statementSep = void (symbol ";") <|> void newline
+
+parseFunction :: AwkParser AST.Function
+parseFunction = do
+    reserved "function"
+    name <- identifier
+    params <- parens $ commaSep $ AST.LocalName <$> identifier
+    body <- action
+    return $ AST.Function
+        { AST.functionName = name
+        , AST.parameters = params
+        , AST.functionBody = body
+        }
+
+parseRule :: AwkParser AST.Rule
+parseRule = undefined
+
 programPart :: AwkParser (Either AST.Function AST.Rule)
-programPart = parseFunction `parseEither` parseRule where
-    parseFunction = do
-        reserved "function"
-        undefined
-    parseRule = undefined
+programPart = parseFunction `parseEither` parseRule
 
 program :: AwkParser AST.Program
 program = do
