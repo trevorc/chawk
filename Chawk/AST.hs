@@ -28,9 +28,10 @@ data Statement
     = Break
     | Continue
     | Next
+    | Delete Name [Expression]
     | Exit Expression
     | Return Expression
-    | Delete Name
+    | ExpressionStatement Expression
     | Print
         { format        :: Maybe Expression
         , fields        :: [Expression]
