@@ -6,7 +6,6 @@ import qualified Data.Map as M
 data Program = Program
     { rules     :: [Rule]
     , functions :: M.Map FunctionName Function
-    , globals   :: M.Map String Name
     }
 
 type FunctionName = String
@@ -35,7 +34,7 @@ data Statement
     | Print
         { format        :: Maybe Expression
         , fields        :: [Expression]
-        , redirection   :: Redirection
+        , redirection   :: Maybe Redirection
         }
     | Loop
         { condition     :: Expression
@@ -140,9 +139,10 @@ data Name
     | GlobalName String
     | WholeRecord
     | Field Int
+    deriving (Eq)
 
 data Function = Function
     { functionName  :: FunctionName
-    , parameters    :: [Name]
+    , parameters    :: [String]
     , functionBody  :: Action
     }

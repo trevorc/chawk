@@ -7,17 +7,17 @@ import Control.Monad
 import Data.Function
 import Data.List
 import Data.Ord
-import Text.ParserCombinators.Parsec
+import Text.Parsec
 import qualified Data.Map as M
 
 
-whiteSpace :: CharParser st ()
+whiteSpace :: Parsec String u ()
 whiteSpace = void $ many1 $ (many1 $ oneOf " \t\r\f\v") <|> string "\\\n"
 
-lexeme :: CharParser st a -> CharParser st a
+lexeme :: Parsec String u a -> Parsec String u a
 lexeme p = try $ p <* whiteSpace
 
-symbol :: String -> CharParser st ()
+symbol :: String -> Parsec String u ()
 symbol = void . lexeme . string
 
 word = liftA2 (:) identChar $ many $ identChar <|> digit
@@ -30,12 +30,12 @@ keywords =
     , "tolower", "exp", "log", "split", "sub", "toupper", "gsub"
     ]
 
-operator :: String -> CharParser st ()
+operator :: String -> Parsec String u ()
 operator s = do
   res <- anyOperator
   guard $ res == s
 
-anyOperator :: CharParser st String
+anyOperator :: Parsec String u String
 anyOperator = choice $ map string $ operators
     where operators = reverse $ sortBy (comparing length)
                       [ "+=", "-=", "*=", "/=", "%=", "^=", "||",
@@ -48,7 +48,7 @@ identifier = lexeme $ do
                guard $ str `notElem` keywords
                return str
 
-keyword :: String -> CharParser st ()
+keyword :: String -> Parsec String u ()
 keyword name = lexeme $ do
                  str <- word
                  guard $ str == name
@@ -59,8 +59,8 @@ braces   = "{" <<>> "}"
 brackets = "[" <<>> "]"
 parens   = "(" <<>> ")"
 
-commaSep :: CharParser st a -> CharParser st [a]
+commaSep :: Parsec String u a -> Parsec String u [a]
 commaSep = (`sepBy` symbol ",")
 
-newline :: CharParser st ()
-newline = void $ lexeme $ string "\n"
+newlineToken :: Parsec String u ()
+newlineToken = void $ lexeme $ string "\n"
