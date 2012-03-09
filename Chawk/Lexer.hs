@@ -1,25 +1,24 @@
 module Chawk.Lexer where
 
-import qualified Chawk.AST as AST
-
 import Control.Applicative hiding (many, some, (<|>))
 import Control.Monad
 import Data.Function
 import Data.List
 import Data.Ord
 import Text.Parsec
-import qualified Data.Map as M
 
+type Parser u = Parsec String u
 
-whiteSpace :: Parsec String u ()
+whiteSpace :: Parser u ()
 whiteSpace = void $ many1 $ (many1 $ oneOf " \t\r\f\v") <|> string "\\\n"
 
-lexeme :: Parsec String u a -> Parsec String u a
+lexeme :: Parser u a -> Parser u a
 lexeme p = try $ p <* whiteSpace
 
-symbol :: String -> Parsec String u ()
+symbol :: String -> Parser u ()
 symbol = void . lexeme . string
 
+word :: Parser u String
 word = liftA2 (:) identChar $ many $ identChar <|> digit
     where identChar = char '_' <|> letter
 
@@ -30,12 +29,12 @@ keywords =
     , "tolower", "exp", "log", "split", "sub", "toupper", "gsub"
     ]
 
-operator :: String -> Parsec String u ()
+operator :: String -> Parser u ()
 operator s = do
   res <- anyOperator
   guard $ res == s
 
-anyOperator :: Parsec String u String
+anyOperator :: Parser u String
 anyOperator = choice $ map string $ operators
     where operators = reverse $ sortBy (comparing length)
                       [ "+=", "-=", "*=", "/=", "%=", "^=", "||",
@@ -43,24 +42,31 @@ anyOperator = choice $ map string $ operators
                         "--", ">>", "!", ">", "<", "|", "?", ":",
                         "~", "$", "=", ",", ";" ]
 
+identifier :: Parser u String
 identifier = lexeme $ do
                str <- word
                guard $ str `notElem` keywords
                return str
 
-keyword :: String -> Parsec String u ()
+keyword :: String -> Parser u ()
 keyword name = lexeme $ do
                  str <- word
                  guard $ str == name
 
+(<<>>) :: String -> String -> Parser u a -> Parser u a
 (<<>>) = between `on` symbol
 
-braces   = "{" <<>> "}"
-brackets = "[" <<>> "]"
-parens   = "(" <<>> ")"
+braces :: Parser u a -> Parser u a
+braces = "{" <<>> "}"
 
-commaSep :: Parsec String u a -> Parsec String u [a]
+brackets :: Parser u a -> Parser u a
+brackets = "[" <<>> "]"
+
+parens :: Parser u a -> Parser u a
+parens = "(" <<>> ")"
+
+commaSep :: Parser u a -> Parser u [a]
 commaSep = (`sepBy` symbol ",")
 
-newlineToken :: Parsec String u ()
+newlineToken :: Parser u ()
 newlineToken = void $ lexeme $ string "\n"

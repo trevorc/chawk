@@ -1,13 +1,11 @@
-package := Chawk
-program := $(package)/chawk
-sources := $(wildcard $(package)/*.hs)
-objects := $(patsubst %.hs,%.hi,$(sources)) \
-           $(patsubst %.hs,%.o, $(sources))
+.PHONY: all
+all:
+	cabal build
 
-
-$(program): $(sources)
-	ghc --make -o $@ $^
+.PHONY: configure
+configure:
+	cabal configure
 
 .PHONY: clean
 clean:
-	$(RM) $(program) $(objects)
+	cabal clean

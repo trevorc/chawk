@@ -1,0 +1,13 @@
+Name: chawk
+Version: 1.0
+License: BSD3
+Build-Type: Simple
+Build-Depends: base, containers, parsec
+
+Executable: chawk
+Main-is:       Main.hs
+Other-Modules: Chawk.AST
+               Chawk.Interpreter
+               Chawk.Lexer
+               Chawk.Parser
+GHC-Options: -Wall

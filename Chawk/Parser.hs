@@ -1,4 +1,4 @@
-module Chawk.Parse
+module Chawk.Parser
 ( parseProgram
 ) where
 
@@ -51,7 +51,7 @@ keywordStatement :: String -> AST.Statement -> AwkParser AST.Statement
 keywordStatement s st = keyword s *> pure st
 
 name :: AwkParser AST.Name
-name = mzero
+name = empty
 
 deleteStatement :: AwkParser AST.Statement
 deleteStatement = keyword "delete" *>
@@ -83,13 +83,13 @@ action = braces $ concat <$> sepEndBy statementGroup statementSep
 parseFunction :: AwkParser AST.Function
 parseFunction = do
     keyword "function"
-    name <- identifier
+    fnName <- identifier
     params <- parens $ commaSep $ identifier
     guard (params == nub params) <?> "duplicate parameter"
     withLocals (S.fromList params) $ do
                   body <- action
                   return $ AST.Function
-                             { AST.functionName = name
+                             { AST.functionName = fnName
                              , AST.parameters = params
                              , AST.functionBody = body
                              }
