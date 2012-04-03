@@ -2,7 +2,7 @@ Name: chawk
 Version: 1.0
 License: BSD3
 Build-Type: Simple
-Build-Depends: base, containers, parsec
+Build-Depends: base, containers, parsec >= 3
 
 Executable: chawk
 Main-is:       Main.hs

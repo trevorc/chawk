@@ -1,6 +1,6 @@
 module Chawk.Parser
-( parseProgram
-) where
+    ( parseProgram
+    ) where
 
 
 import Chawk.Lexer
@@ -11,7 +11,6 @@ import Control.Arrow ((&&&))
 import Control.Monad (guard)
 import Data.List (nub)
 import Data.Either
-import Data.Maybe
 import Text.Parsec hiding ((<|>))
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -34,12 +33,9 @@ withLocals xs m = modifyState (\st -> st { stLocals = xs })
                   *> m
                   <* modifyState (\st -> st { stLocals = S.empty })
 
-initialState :: ParseState
-initialState = ParseState S.empty
-
 parseProgram :: String -> String -> Either ParseError AST.Program
 parseProgram fname contents =
-    runParser program initialState fname contents
+    runParser program (ParseState S.empty) fname contents
 
 expression :: AwkParser AST.Expression
 expression = empty
@@ -54,31 +50,69 @@ name :: AwkParser AST.Name
 name = empty
 
 deleteStatement :: AwkParser AST.Statement
-deleteStatement = keyword "delete" *>
-                  (AST.Delete
-                   <$> name
-                   <*> brackets (commaSep expression))
+deleteStatement = do
+  array <- keyword "delete" *> name
+  dims <- brackets $ commaSep expression
+  return $ AST.Delete array dims
 
 printStatement :: AwkParser AST.Statement
 printStatement = empty
 
 simpleStatement :: AwkParser AST.Statement
 simpleStatement = deleteStatement
+                  <|> doStatement
                   <|> printStatement
                   <|> keywordStatement "break" AST.Break
                   <|> keywordStatement "next" AST.Next
                   <|> keywordStatement "continue" AST.Continue
                   <|> expressionStatement
 
+whileStatement :: AwkParser AST.Statement
+whileStatement = do
+  cond <- keyword "while" *> parens expression
+  body <- optional newlineToken *> complexBody
+  return $ AST.Loop False cond body
+
+doStatement :: AwkParser AST.Statement
+doStatement = do
+  body <- keyword "do" *> optional newlineToken *> action
+  cond <- optional newlineToken *> keyword "while" *> parens expression
+  return $ AST.Loop True cond body
+
+ifStatement :: AwkParser AST.Statement
+ifStatement = do
+  cond <- keyword "if" *> parens expression <* optional newlineToken
+  thenClause <- complexBody
+  elseClause <- optionMaybe $ keyword "else" *> complexBody
+  return $ AST.If
+             { AST.condition  = cond
+             , AST.body       = thenClause
+             , AST.alterative = elseClause
+             }
+
+forStatement :: AwkParser AST.Statement
+forStatement = empty
+
 complexStatement :: AwkParser AST.Statement
-complexStatement = empty
+-- disjunction based on first lexeme
+complexStatement = whileStatement
+                   <|> ifStatement
+                   <|> forStatement
+
+complexBody :: AwkParser AST.Action
+complexBody = action <|> (AST.Action . return <$> statement)
+
+statement :: AwkParser AST.Statement
+statement = complexStatement
+            <|> (simpleStatement <* terminator)
+    where terminator = operator ";"
+                       <|> newlineToken
+                       <|> try (lookAhead $ operator "}")
 
 action :: AwkParser AST.Action
-action = braces $ concat <$> sepEndBy statementGroup statementSep
-    where statementSep = newlineToken <|> operator ";"
-          statementGroup =
-              (++) <$> many complexStatement
-                   <*> (maybeToList <$> optionMaybe simpleStatement)
+action = braces $ AST.Action . concat <$> many statementGroup
+    where statementGroup = (AST.actionStatements <$> action)
+                           <|> many1 statement
 
 parseFunction :: AwkParser AST.Function
 parseFunction = do
@@ -104,6 +138,7 @@ programPart = (parseFunction `parseEither` parseRule)
 program :: AwkParser AST.Program
 program = do
     (functions, rules) <- partitionEithers <$> many programPart
+    eof
     let functionMap = M.fromList $
             (AST.functionName &&& id) <$> functions
     return $ AST.Program rules functionMap

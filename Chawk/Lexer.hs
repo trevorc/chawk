@@ -43,15 +43,17 @@ anyOperator = choice $ map string $ operators
                         "~", "$", "=", ",", ";" ]
 
 identifier :: Parser u String
-identifier = lexeme $ do
-               str <- word
-               guard $ str `notElem` keywords
-               return str
+identifier = lexeme l <?> "identifier"
+    where l = do
+            str <- word
+            guard $ str `notElem` keywords
+            return str
 
 keyword :: String -> Parser u ()
-keyword name = lexeme $ do
-                 str <- word
-                 guard $ str == name
+keyword name = lexeme l <?> "keyword \"" ++ name ++ "\""
+    where l = do
+            str <- word
+            guard $ str == name
 
 (<<>>) :: String -> String -> Parser u a -> Parser u a
 (<<>>) = between `on` symbol
@@ -69,4 +71,4 @@ commaSep :: Parser u a -> Parser u [a]
 commaSep = (`sepBy` symbol ",")
 
 newlineToken :: Parser u ()
-newlineToken = void $ lexeme $ string "\n"
+newlineToken = void $ many1 $ lexeme $ string "\n"

@@ -21,7 +21,8 @@ data Pattern
     | Begin
     | End
 
-type Action = [Statement]
+newtype Action = Action
+    { actionStatements :: [Statement] }
 
 data Statement
     = Break
@@ -37,9 +38,9 @@ data Statement
         , redirection   :: Maybe Redirection
         }
     | Loop
-        { condition     :: Expression
+        { isDo          :: Bool
+        , condition     :: Expression
         , body          :: Action
-        , isDo          :: Bool
         }
     | If
         { condition     :: Expression
