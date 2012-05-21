@@ -6,23 +6,26 @@ import qualified Data.Map as M
 data Program = Program
     { rules     :: [Rule]
     , functions :: M.Map FunctionName Function
-    }
+    } deriving (Show)
 
 type FunctionName = String
 
 data Rule = Rule
     { pattern   :: Pattern
     , action    :: Action
-    }
+    } deriving (Show)
 
 data Pattern
-    = Pattern [Expression]
+    = Pattern Expression
+    | PatternRange Expression Expression
     | Always
     | Begin
     | End
+    deriving (Show)
 
 newtype Action = Action
-    { actionStatements :: [Statement] }
+    { actionStatements :: [Statement]
+    } deriving (Show)
 
 data Statement
     = Break
@@ -58,11 +61,13 @@ data Statement
         , enumerand     :: Name
         , body          :: Action
         }
+    deriving (Show)
 
 data Redirection
     = Truncate Expression
     | Append Expression
     | Pipe Expression
+    deriving (Show)
 
 filename :: Redirection -> Maybe Expression
 filename (Truncate e) = Just e
@@ -72,6 +77,7 @@ filename (Pipe {}) = Nothing
 data LValue
     = DirectLValue Name
     | IndirectLValue Expression
+    deriving (Show)
 
 data Expression
     = StringLiteral String
@@ -93,21 +99,25 @@ data Expression
         { callee    :: FunctionName
         , arguments :: [Expression]
         }
+    deriving (Show)
 
 data Associativity
     = LeftAssociativity
     | RightAssociativity
+    deriving (Show)
 
 data UnaryOperator
     = UnaryPlus
     | UnaryMinus
     | LogicalNot
+    deriving (Show)
 
 data IncrementOperator
     = PreIncrement
     | PreDecrement
     | PostIncrement
     | PostDecrement
+    deriving (Show)
 
 data BinaryOperator
     = Exponentiate
@@ -130,20 +140,22 @@ data BinaryOperator
     | LogicalAnd
     | LogicalOr
     | Lookup
+    deriving (Show)
 
 data AssignmentOperator
     = SimpleAssignment
     | CompoundAssignment BinaryOperator
+    deriving (Show)
 
 data Name
     = LocalName String
     | GlobalName String
     | WholeRecord
     | Field Int
-    deriving (Eq)
+    deriving (Eq, Show)
 
 data Function = Function
     { functionName  :: FunctionName
     , parameters    :: [String]
     , functionBody  :: Action
-    }
+    } deriving (Show)

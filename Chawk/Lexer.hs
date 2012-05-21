@@ -1,6 +1,6 @@
 module Chawk.Lexer where
 
-import Control.Applicative hiding (many, some, (<|>))
+import Control.Applicative hiding (many, some, optional, (<|>))
 import Control.Monad
 import Data.Function
 import Data.List
@@ -13,7 +13,7 @@ whiteSpace :: Parser u ()
 whiteSpace = void $ many1 $ (many1 $ oneOf " \t\r\f\v") <|> string "\\\n"
 
 lexeme :: Parser u a -> Parser u a
-lexeme p = try $ p <* whiteSpace
+lexeme p = try $ p <* optional whiteSpace
 
 symbol :: String -> Parser u ()
 symbol = void . lexeme . string
@@ -72,3 +72,6 @@ commaSep = (`sepBy` symbol ",")
 
 newlineToken :: Parser u ()
 newlineToken = void $ many1 $ lexeme $ string "\n"
+
+keywordValue :: String -> a -> Parser u a
+keywordValue name value = keyword name *> return value

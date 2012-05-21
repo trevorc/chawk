@@ -29,9 +29,10 @@ parseEither :: Parsec s u a
 l `parseEither` r = (Left <$> l) <|> (Right <$> r)
 
 withLocals :: Locals -> AwkParser a -> AwkParser a
-withLocals xs m = modifyState (\st -> st { stLocals = xs })
-                  *> m
-                  <* modifyState (\st -> st { stLocals = S.empty })
+withLocals xs m = do
+  locals <- modifyState (\st -> st { stLocals = xs }) *> m
+  modifyState $ \st -> st { stLocals = S.empty }
+  return locals
 
 parseProgram :: String -> String -> Either ParseError AST.Program
 parseProgram fname contents =
@@ -113,6 +114,8 @@ action :: AwkParser AST.Action
 action = braces $ AST.Action . concat <$> many statementGroup
     where statementGroup = (AST.actionStatements <$> action)
                            <|> many1 statement
+                           <|> (emptyStatement *> return [])
+          emptyStatement = newlineToken <|> operator ";"
 
 parseFunction :: AwkParser AST.Function
 parseFunction = do
@@ -129,7 +132,14 @@ parseFunction = do
                              }
 
 parseRule :: AwkParser AST.Rule
-parseRule = empty
+parseRule = AST.Rule <$> pattern <*> action
+    where pattern = keywordValue "BEGIN" AST.Begin
+                    <|> keywordValue "END" AST.End
+                    <|> (p =<< commaSep expression)
+          p []           = return AST.Always
+          p [expr]       = return $ AST.Pattern expr
+          p [begin, end] = return $ AST.PatternRange begin end
+          p _            = unexpected "Pattern range with too many ,'s"
 
 programPart :: AwkParser (Either AST.Function AST.Rule)
 programPart = (parseFunction `parseEither` parseRule)
