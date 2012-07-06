@@ -150,8 +150,6 @@ data AssignmentOperator
 data Name
     = LocalName String
     | GlobalName String
-    | WholeRecord
-    | Field Int
     deriving (Eq, Show)
 
 data Function = Function

@@ -38,8 +38,19 @@ parseProgram :: String -> String -> Either ParseError AST.Program
 parseProgram fname contents =
     runParser program (ParseState S.empty) fname contents
 
+lValue :: AwkParser AST.LValue
+lValue = directLValue <|> indirectLValue
+    where directLValue = AST.DirectLValue <$> name
+          indirectLValue = AST.IndirectLValue <$> (operator "$" *> expression)
+
+
 expression :: AwkParser AST.Expression
-expression = empty
+expression = functionCall
+             <|> fmap AST.LValueReference lValue
+    where functionCall = try $ do
+                           fn <- identifier
+                           args <- parens $ commaSep expression
+                           return $ AST.FunctionCall fn args
 
 expressionStatement :: AwkParser AST.Statement
 expressionStatement = AST.ExpressionStatement <$> expression
@@ -48,7 +59,12 @@ keywordStatement :: String -> AST.Statement -> AwkParser AST.Statement
 keywordStatement s st = keyword s *> pure st
 
 name :: AwkParser AST.Name
-name = empty
+name = do
+  nm <- identifier
+  isLocal <- S.member nm . stLocals <$> getState
+  return $ if isLocal
+             then AST.LocalName nm
+             else AST.GlobalName nm
 
 deleteStatement :: AwkParser AST.Statement
 deleteStatement = do
@@ -147,8 +163,9 @@ programPart = (parseFunction `parseEither` parseRule)
 
 program :: AwkParser AST.Program
 program = do
-    (functions, rules) <- partitionEithers <$> many programPart
-    eof
-    let functionMap = M.fromList $
-            (AST.functionName &&& id) <$> functions
-    return $ AST.Program rules functionMap
+  (functions, rules) <- whiteSpace *> many newlineToken *>
+                        (partitionEithers <$> many programPart)
+  eof
+  let functionMap = M.fromList $
+          (AST.functionName &&& id) <$> functions
+  return $ AST.Program rules functionMap
