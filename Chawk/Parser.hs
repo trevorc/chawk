@@ -163,7 +163,7 @@ programPart = (parseFunction `parseEither` parseRule)
 
 program :: AwkParser AST.Program
 program = do
-  (functions, rules) <- whiteSpace *> many newlineToken *>
+  (functions, rules) <- optional whiteSpace *> many newlineToken *>
                         (partitionEithers <$> many programPart)
   eof
   let functionMap = M.fromList $

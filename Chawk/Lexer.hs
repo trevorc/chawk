@@ -1,4 +1,4 @@
-module Chawk.Lexer where
+module Chawk.Lexer where        -- -*- coding: utf-8 -*-
 
 import Control.Applicative hiding (many, some, optional, (<|>))
 import Control.Monad
@@ -21,6 +21,31 @@ symbol = void . lexeme . string
 word :: Parser u String
 word = liftA2 (:) identChar $ many $ identChar <|> digit
     where identChar = char '_' <|> letter
+
+integerToken :: Parser u Integer
+integerToken = read <$> lexeme (many1 digit)
+
+-- See ISO C Standard § 6.4.4.2 Floating constants
+floatingPointToken :: Parser u Double
+floatingPointToken = read' <$> lexeme (decimal <|> whole)
+  where read' :: String -> Double
+        read' = read . ('0':)
+        decimal = trailing <|> notTrailing
+        whole = (++) <$> many1 digit <*> exp
+        trailing = together [ many digit
+                            , string "."
+                            , many1 digit
+                            , option "" exp
+                            ]
+        notTrailing = together [ many1 digit
+                               , string "."
+                               , option "" exp
+                               ]
+        exp = together [ return <$> oneOf "Ee"
+                       , option "" (return <$> oneOf "+-")
+                       , many1 digit
+                       ]
+        together ps = concat <$> sequence ps
 
 keywords :: [String]
 keywords =

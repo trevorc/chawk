@@ -16,8 +16,8 @@ data Flag
 
 options :: [OptDescr Flag]
 options =
-    [ Option ['f'] [] (ReqArg FileInput "FILE") "file to process"
-    , Option ['?'] [] (NoArg Usage) "display usage info"
+    [ Option "f" [] (ReqArg FileInput "FILE") "file to process"
+    , Option "?" [] (NoArg Usage) "display usage info"
     ]
 
 usage :: IO a

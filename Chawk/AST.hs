@@ -1,6 +1,5 @@
 module Chawk.AST where
 
-
 import qualified Data.Map as M
 
 data Program = Program
