@@ -52,6 +52,9 @@ expression = functionCall
                            args <- parens $ commaSep expression
                            return $ AST.FunctionCall fn args
 
+printExpression :: AwkParser AST.Expression
+printExpression = fail "printExpression not implemented"
+
 expressionStatement :: AwkParser AST.Statement
 expressionStatement = AST.ExpressionStatement <$> expression
 
@@ -72,8 +75,19 @@ deleteStatement = do
   dims <- brackets $ commaSep expression
   return $ AST.Delete array dims
 
+outputRedirection :: AwkParser AST.Redirection
+outputRedirection = empty
+
 printStatement :: AwkParser AST.Statement
-printStatement = empty
+printStatement = do
+  isPrintf <- (True <$ keyword "printf") <|> (False <$ keyword "print")
+  stuffToPrint <- (parens $ commaSep $ expression)
+                  <|> commaSep printExpression
+  redirection <- optionMaybe outputRedirection
+  case (isPrintf, stuffToPrint) of
+    (True, []) -> unexpected "printf requires a format"
+    (True, format:exprs) -> return $ AST.Print (Just format) exprs redirection
+    (_, exprs) -> return $ AST.Print Nothing exprs redirection
 
 simpleStatement :: AwkParser AST.Statement
 simpleStatement = deleteStatement
